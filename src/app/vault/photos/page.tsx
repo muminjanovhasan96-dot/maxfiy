@@ -9,14 +9,16 @@ import {
   GallerySkeleton,
   PageHeader,
 } from "@/components/vault/section-ui";
+import { useT } from "@/lib/i18n";
 
 export default function PhotosPage() {
+  const t = useT();
   const { stubs, loading } = useTimeline({ type: "photo", trashed: false });
 
   return (
     <div className="px-3 sm:px-5">
-      <PageHeader count={stubs.length} unit="photos">
-        <UploadButton kind="photo" label="Add photos" />
+      <PageHeader count={stubs.length} unit={t("unit.photos")}>
+        <UploadButton kind="photo" label={t("upload.photos")} />
       </PageHeader>
       <DropZone kind="photo">
         {loading ? (
@@ -27,9 +29,9 @@ export default function PhotosPage() {
             emptyState={
               <EmptyState
                 icon={ImageIcon}
-                title="No photos yet"
-                subtitle="Add photos and they’ll be encrypted on this device before they’re ever stored. Drag & drop works too."
-                action={<UploadButton kind="photo" label="Add photos" />}
+                title={t("empty.photos.t")}
+                subtitle={t("empty.photos.s")}
+                action={<UploadButton kind="photo" label={t("upload.photos")} />}
               />
             }
           />

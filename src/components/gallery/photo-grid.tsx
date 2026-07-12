@@ -10,6 +10,8 @@ import { PhotoCell } from "./photo-cell";
 import { PhotoViewer } from "./photo-viewer";
 import { Button } from "@/components/ui/button";
 import { toast } from "@/components/ui/toaster";
+import { dateLocale, useLang, useT, type TFunc } from "@/lib/i18n";
+import type { Locale } from "date-fns";
 
 const GAP = 3;
 const HEADER_H = 52;
@@ -18,10 +20,10 @@ type Row =
   | { kind: "header"; key: string; label: string }
   | { kind: "photos"; key: string; items: ItemStub[] };
 
-function dayLabel(ts: number): string {
-  if (isToday(ts)) return "Today";
-  if (isYesterday(ts)) return "Yesterday";
-  return format(ts, "EEEE, d MMMM yyyy");
+function dayLabel(ts: number, t: TFunc, locale: Locale): string {
+  if (isToday(ts)) return t("date.today");
+  if (isYesterday(ts)) return t("date.yesterday");
+  return format(ts, "EEEE, d MMMM yyyy", { locale });
 }
 
 export function PhotoGrid({
@@ -31,6 +33,9 @@ export function PhotoGrid({
   stubs: ItemStub[];
   emptyState?: React.ReactNode;
 }) {
+  const t = useT();
+  const lang = useLang();
+  const locale = dateLocale(lang);
   const bump = useVault((s) => s.bump);
   const repo = useVault((s) => s.repo);
   const listRef = useRef<HTMLDivElement>(null);
@@ -83,13 +88,13 @@ export function PhotoGrid({
       if (day !== currentDay) {
         flush();
         currentDay = day;
-        out.push({ kind: "header", key: `h-${day}`, label: dayLabel(s.sortKey) });
+        out.push({ kind: "header", key: `h-${day}`, label: dayLabel(s.sortKey, t, locale) });
       }
       bucket.push(s);
     }
     flush();
     return out;
-  }, [stubs, columns]);
+  }, [stubs, columns, t, locale]);
 
   const rowHeight = useCallback(
     (index: number) => (rows[index]?.kind === "header" ? HEADER_H : cellSize + GAP),
@@ -131,8 +136,9 @@ export function PhotoGrid({
 
   async function favoriteSelected() {
     if (!repo) return;
+    const n = selection.size;
     for (const id of selection) await repo.setFavorite(id, true);
-    toast.success(`Favorited ${selection.size}`);
+    toast.success(t("toast.favorited", { n }));
     clearSelection();
     bump();
   }
@@ -140,7 +146,7 @@ export function PhotoGrid({
     if (!repo) return;
     const n = selection.size;
     for (const id of selection) await repo.trash(id);
-    toast.success(`Moved ${n} to Trash`);
+    toast.success(t("toast.movedN", { n }));
     clearSelection();
     bump();
   }
@@ -205,9 +211,11 @@ export function PhotoGrid({
             <Button variant="ghost" size="icon" onClick={clearSelection}>
               <X className="h-5 w-5" />
             </Button>
-            <span className="flex-1 text-sm font-medium">{selection.size} selected</span>
+            <span className="flex-1 text-sm font-medium">
+              {t("gallery.selected", { n: selection.size })}
+            </span>
             <Button variant="ghost" size="sm" onClick={favoriteSelected} disabled={!selection.size}>
-              <Star className="h-4 w-4" /> Favorite
+              <Star className="h-4 w-4" /> {t("gallery.favorite")}
             </Button>
             <Button
               variant="ghost"
@@ -216,7 +224,7 @@ export function PhotoGrid({
               disabled={!selection.size}
               className="text-destructive"
             >
-              <Trash2 className="h-4 w-4" /> Delete
+              <Trash2 className="h-4 w-4" /> {t("common.delete")}
             </Button>
           </motion.div>
         )}

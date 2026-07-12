@@ -14,6 +14,7 @@ import { useVault } from "@/store/vault-store";
 import type { ItemStub, StoredItem } from "@/lib/storage/types";
 import { triggerDownload } from "@/lib/repo/backup";
 import { toast } from "@/components/ui/toaster";
+import { useT } from "@/lib/i18n";
 import { cn } from "@/lib/utils";
 
 interface ViewerProps {
@@ -25,6 +26,7 @@ interface ViewerProps {
 }
 
 export function PhotoViewer({ items, index, onIndexChange, onClose, onChanged }: ViewerProps) {
+  const t = useT();
   const repo = useVault((s) => s.repo);
   const stub = items[index];
   const [item, setItem] = useState<StoredItem | null>(null);
@@ -73,7 +75,7 @@ export function PhotoViewer({ items, index, onIndexChange, onClose, onChanged }:
         urlCache.current.set(stub.id, u);
         setUrl(u);
       } catch {
-        toast.error("Could not decrypt this item");
+        toast.error(t("toast.couldNotDecrypt"));
       } finally {
         if (active) setLoading(false);
       }
@@ -117,7 +119,7 @@ export function PhotoViewer({ items, index, onIndexChange, onClose, onChanged }:
 
   async function download() {
     if (!repo || !item) return;
-    toast.show("Decrypting…");
+    toast.show(t("doc.decrypting"));
     const blob = await repo.getAssetBlob(item);
     const meta = await repo.decryptMeta(item);
     triggerDownload(blob, meta.name || `maxfiy-${item.id}`);
@@ -127,7 +129,7 @@ export function PhotoViewer({ items, index, onIndexChange, onClose, onChanged }:
     if (!repo || !item) return;
     await repo.trash(item.id);
     onChanged();
-    toast.success("Moved to Trash");
+    toast.success(t("toast.moved"));
     if (items.length <= 1) onClose();
     else go(index === items.length - 1 ? -1 : 1);
   }
@@ -168,7 +170,7 @@ export function PhotoViewer({ items, index, onIndexChange, onClose, onChanged }:
             <X className="h-6 w-6" />
           </button>
           <span className="flex-1 text-center text-sm text-white/80">
-            {index + 1} of {items.length}
+            {index + 1} {t("common.of")} {items.length}
           </span>
           <button onClick={toggleFavorite} className="rounded-full p-2.5 hover:bg-white/10">
             <Star className={cn("h-6 w-6", favorite && "fill-white")} />

@@ -2,6 +2,7 @@
 import { useRef, useState } from "react";
 import { Loader2, Plus } from "lucide-react";
 import { useVault } from "@/store/vault-store";
+import { useT } from "@/lib/i18n";
 import { Button } from "@/components/ui/button";
 import { toast } from "@/components/ui/toaster";
 import { cn } from "@/lib/utils";
@@ -15,6 +16,7 @@ const ACCEPT: Record<UploadKind, string> = {
 };
 
 export function useUploads(kind: UploadKind) {
+  const t = useT();
   const repo = useVault((s) => s.repo);
   const bump = useVault((s) => s.bump);
   const [busy, setBusy] = useState(false);
@@ -33,7 +35,7 @@ export function useUploads(kind: UploadKind) {
         else await repo.addMedia(file, kind);
       } catch (err) {
         console.error(err);
-        toast.error(`Failed: ${file.name}`);
+        toast.error(t("upload.failed", { name: file.name }));
       }
       done++;
       setProgress({ done, total: list.length });
@@ -41,7 +43,7 @@ export function useUploads(kind: UploadKind) {
     setBusy(false);
     setProgress(null);
     bump();
-    toast.success(`Added ${done} ${done === 1 ? "item" : "items"}`);
+    toast.success(t("upload.added", { n: done }));
   }
 
   return { busy, progress, upload };
@@ -56,6 +58,7 @@ export function UploadButton({
   label?: string;
   className?: string;
 }) {
+  const t = useT();
   const inputRef = useRef<HTMLInputElement>(null);
   const { busy, progress, upload } = useUploads(kind);
 
@@ -68,8 +71,8 @@ export function UploadButton({
       >
         {busy ? <Loader2 className="h-4 w-4 animate-spin" /> : <Plus className="h-4 w-4" />}
         {busy && progress
-          ? `Encrypting ${progress.done}/${progress.total}`
-          : (label ?? "Add")}
+          ? t("upload.encrypting", { done: progress.done, total: progress.total })
+          : (label ?? t("common.add"))}
       </Button>
       <input
         ref={inputRef}

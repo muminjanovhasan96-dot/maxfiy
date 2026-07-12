@@ -25,11 +25,13 @@ import { EmptyState } from "@/components/vault/section-ui";
 import { Skeleton } from "@/components/ui/skeleton";
 import { copyPlain, copySecret } from "@/lib/clipboard";
 import { toast } from "@/components/ui/toaster";
+import { useT } from "@/lib/i18n";
 import { cn } from "@/lib/utils";
 
 type Tab = "passwords" | "notes";
 
 export default function SecurePage() {
+  const t = useT();
   const repo = useVault((s) => s.repo);
   const revision = useVault((s) => s.revision);
   const bump = useVault((s) => s.bump);
@@ -50,7 +52,7 @@ export default function SecurePage() {
   async function del(id: string) {
     await repo?.trash(id);
     bump();
-    toast.success("Moved to Trash");
+    toast.success(t("toast.moved"));
   }
 
   function toggleReveal(id: string) {
@@ -65,18 +67,18 @@ export default function SecurePage() {
     <div className="px-3 sm:px-5">
       <div className="flex items-center justify-between gap-3 py-3">
         <div className="inline-flex rounded-xl border border-border bg-card p-1">
-          {(["passwords", "notes"] as Tab[]).map((t) => (
+          {(["passwords", "notes"] as Tab[]).map((tabKey) => (
             <button
-              key={t}
-              onClick={() => setTab(t)}
+              key={tabKey}
+              onClick={() => setTab(tabKey)}
               className={cn(
-                "rounded-lg px-4 py-1.5 text-sm font-medium capitalize transition-colors",
-                tab === t
+                "rounded-lg px-4 py-1.5 text-sm font-medium transition-colors",
+                tab === tabKey
                   ? "bg-primary text-primary-foreground"
                   : "text-muted-foreground hover:text-foreground",
               )}
             >
-              {t}
+              {tabKey === "passwords" ? t("secure.passwords") : t("secure.notes")}
             </button>
           ))}
         </div>
@@ -86,7 +88,7 @@ export default function SecurePage() {
             tab === "passwords" ? setPwDialog(true) : setNoteDialog(true);
           }}
         >
-          <Plus className="h-4 w-4" /> New
+          <Plus className="h-4 w-4" /> {t("common.new")}
         </Button>
       </div>
 
@@ -96,8 +98,8 @@ export default function SecurePage() {
         ) : passwords.length === 0 ? (
           <EmptyState
             icon={KeyRound}
-            title="No logins yet"
-            subtitle="Store passwords and logins. Copy with one tap — the clipboard auto-clears."
+            title={t("empty.passwords.t")}
+            subtitle={t("empty.passwords.s")}
           />
         ) : (
           <div className="space-y-2 pb-6">
@@ -129,7 +131,7 @@ export default function SecurePage() {
                           {shown ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
                         </button>
                         <button
-                          onClick={() => copySecret(p.password, "Password copied")}
+                          onClick={() => copySecret(p.password, t("pw.copied"))}
                           className="text-muted-foreground hover:text-foreground"
                         >
                           <Copy className="h-4 w-4" />
@@ -144,14 +146,14 @@ export default function SecurePage() {
                       </DropdownMenuTrigger>
                       <DropdownMenuContent align="end">
                         {p.username && (
-                          <DropdownMenuItem onClick={() => copyPlain(p.username!, "Username copied")}>
-                            <Copy className="h-4 w-4" /> Copy username
+                          <DropdownMenuItem onClick={() => copyPlain(p.username!, t("pw.userCopied"))}>
+                            <Copy className="h-4 w-4" /> {t("pw.copyUsername")}
                           </DropdownMenuItem>
                         )}
                         {p.url && (
                           <DropdownMenuItem asChild>
                             <a href={p.url} target="_blank" rel="noreferrer noopener">
-                              Open website
+                              {t("pw.openWebsite")}
                             </a>
                           </DropdownMenuItem>
                         )}
@@ -161,10 +163,10 @@ export default function SecurePage() {
                             setPwDialog(true);
                           }}
                         >
-                          Edit
+                          {t("common.edit")}
                         </DropdownMenuItem>
                         <DropdownMenuItem destructive onClick={() => del(d.item.id)}>
-                          <Trash2 className="h-4 w-4" /> Delete
+                          <Trash2 className="h-4 w-4" /> {t("common.delete")}
                         </DropdownMenuItem>
                       </DropdownMenuContent>
                     </DropdownMenu>
@@ -179,8 +181,8 @@ export default function SecurePage() {
       ) : notes.length === 0 ? (
         <EmptyState
           icon={StickyNote}
-          title="No notes yet"
-          subtitle="Private notes, encrypted end-to-end. Only you can read them."
+          title={t("empty.notes.t")}
+          subtitle={t("empty.notes.s")}
         />
       ) : (
         <div className="grid grid-cols-1 gap-3 pb-6 sm:grid-cols-2 lg:grid-cols-3">

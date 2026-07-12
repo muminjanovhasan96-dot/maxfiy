@@ -15,6 +15,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { toast } from "@/components/ui/toaster";
+import { useT } from "@/lib/i18n";
 
 type Contact = NonNullable<ItemMeta["contact"]>;
 
@@ -38,6 +39,7 @@ export function ContactDialog({
   editing?: DecryptedItem | null;
   onSaved: () => void;
 }) {
+  const t = useT();
   const repo = useVault((s) => s.repo);
   const [c, setC] = useState<Contact>(empty);
   const [busy, setBusy] = useState(false);
@@ -65,7 +67,7 @@ export function ContactDialog({
       } else {
         await repo.addContact(cleaned);
       }
-      toast.success(editing ? "Contact updated" : "Contact added");
+      toast.success(editing ? t("contact.updated") : t("contact.added"));
       onSaved();
       onOpenChange(false);
     } finally {
@@ -77,33 +79,33 @@ export function ContactDialog({
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="max-h-[88vh] overflow-y-auto">
         <DialogHeader>
-          <DialogTitle>{editing ? "Edit contact" : "New contact"}</DialogTitle>
+          <DialogTitle>{editing ? t("contact.edit") : t("contact.new")}</DialogTitle>
         </DialogHeader>
         <div className="space-y-4">
           <div className="grid grid-cols-2 gap-3">
             <div className="space-y-1.5">
-              <Label>First name</Label>
+              <Label>{t("contact.firstName")}</Label>
               <Input value={c.firstName} onChange={(e) => set("firstName", e.target.value)} autoFocus />
             </div>
             <div className="space-y-1.5">
-              <Label>Last name</Label>
+              <Label>{t("contact.lastName")}</Label>
               <Input value={c.lastName ?? ""} onChange={(e) => set("lastName", e.target.value)} />
             </div>
           </div>
           <div className="space-y-1.5">
-            <Label>Company</Label>
+            <Label>{t("contact.company")}</Label>
             <Input value={c.company ?? ""} onChange={(e) => set("company", e.target.value)} />
           </div>
 
           <RepeatList
-            label="Phone"
+            label={t("contact.phone")}
             rows={c.phones}
             onChange={(rows) => set("phones", rows)}
-            placeholder="+1 555 0100"
+            placeholder="+998 90 000 00 00"
             inputMode="tel"
           />
           <RepeatList
-            label="Email"
+            label={t("contact.email")}
             rows={c.emails}
             onChange={(rows) => set("emails", rows)}
             placeholder="name@example.com"
@@ -111,7 +113,7 @@ export function ContactDialog({
           />
 
           <div className="space-y-1.5">
-            <Label>Notes</Label>
+            <Label>{t("contact.notes")}</Label>
             <textarea
               value={c.notes ?? ""}
               onChange={(e) => set("notes", e.target.value)}
@@ -122,10 +124,10 @@ export function ContactDialog({
         </div>
         <DialogFooter>
           <Button variant="secondary" onClick={() => onOpenChange(false)}>
-            Cancel
+            {t("common.cancel")}
           </Button>
           <Button onClick={save} disabled={busy || !c.firstName.trim()}>
-            {busy ? "Saving…" : "Save"}
+            {busy ? t("common.saving") : t("common.save")}
           </Button>
         </DialogFooter>
       </DialogContent>
@@ -146,6 +148,7 @@ function RepeatList({
   placeholder?: string;
   inputMode?: "tel" | "email";
 }) {
+  const t = useT();
   return (
     <div className="space-y-2">
       <div className="flex items-center justify-between">
@@ -154,7 +157,7 @@ function RepeatList({
           onClick={() => onChange([...rows, { label: label.toLowerCase(), value: "" }])}
           className="flex items-center gap-1 text-xs text-primary hover:underline"
         >
-          <Plus className="h-3.5 w-3.5" /> Add
+          <Plus className="h-3.5 w-3.5" /> {t("common.add")}
         </button>
       </div>
       {rows.map((row, i) => (

@@ -2,6 +2,7 @@
 import { useState } from "react";
 import { UploadCloud } from "lucide-react";
 import { useUploads, type UploadKind } from "./uploader";
+import { useT } from "@/lib/i18n";
 
 export function DropZone({
   kind,
@@ -10,6 +11,7 @@ export function DropZone({
   kind: UploadKind;
   children: React.ReactNode;
 }) {
+  const t = useT();
   const { upload } = useUploads(kind);
   const [dragging, setDragging] = useState(false);
 
@@ -34,7 +36,7 @@ export function DropZone({
         <div className="pointer-events-none absolute inset-0 z-40 flex items-center justify-center rounded-2xl border-2 border-dashed border-primary bg-primary/10 backdrop-blur-sm">
           <div className="flex flex-col items-center gap-2 text-primary">
             <UploadCloud className="h-10 w-10" />
-            <span className="font-medium">Drop to encrypt & add</span>
+            <span className="font-medium">{t("upload.drop")}</span>
           </div>
         </div>
       )}

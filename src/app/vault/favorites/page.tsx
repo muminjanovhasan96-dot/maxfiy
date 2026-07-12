@@ -3,8 +3,10 @@ import { Star } from "lucide-react";
 import { useTimeline } from "@/components/gallery/use-timeline";
 import { PhotoGrid } from "@/components/gallery/photo-grid";
 import { EmptyState, GallerySkeleton, PageHeader } from "@/components/vault/section-ui";
+import { useT } from "@/lib/i18n";
 
 export default function FavoritesPage() {
+  const t = useT();
   const { stubs, loading } = useTimeline({
     type: ["photo", "video"],
     favorite: true,
@@ -13,7 +15,7 @@ export default function FavoritesPage() {
 
   return (
     <div className="px-3 sm:px-5">
-      <PageHeader count={stubs.length} unit="favorites" />
+      <PageHeader count={stubs.length} unit={t("unit.favorites")} />
       {loading ? (
         <GallerySkeleton />
       ) : (
@@ -22,8 +24,8 @@ export default function FavoritesPage() {
           emptyState={
             <EmptyState
               icon={Star}
-              title="No favorites yet"
-              subtitle="Mark photos and videos as favorites and they’ll gather here for quick access."
+              title={t("empty.favorites.t")}
+              subtitle={t("empty.favorites.s")}
             />
           }
         />

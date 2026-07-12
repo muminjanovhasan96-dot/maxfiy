@@ -16,6 +16,7 @@ import { Button } from "@/components/ui/button";
 import { EmptyState, PageHeader } from "@/components/vault/section-ui";
 import { Skeleton } from "@/components/ui/skeleton";
 import { toast } from "@/components/ui/toaster";
+import { useT } from "@/lib/i18n";
 
 const ICONS: Record<string, React.ComponentType<{ className?: string }>> = {
   photo: ImageIcon,
@@ -47,6 +48,7 @@ function TrashThumb({ d }: { d: DecryptedItem }) {
 }
 
 export default function TrashPage() {
+  const t = useT();
   const repo = useVault((s) => s.repo);
   const revision = useVault((s) => s.revision);
   const bump = useVault((s) => s.bump);
@@ -60,13 +62,13 @@ export default function TrashPage() {
   async function restore(id: string) {
     await repo?.restore(id);
     bump();
-    toast.success("Restored");
+    toast.success(t("toast.restored"));
   }
   async function del(id: string) {
-    if (!confirm("Delete permanently? This cannot be undone.")) return;
+    if (!confirm(t("delete.confirm"))) return;
     await repo?.deletePermanently(id);
     bump();
-    toast.success("Deleted permanently");
+    toast.success(t("toast.deletedForever"));
   }
 
   if (!items) {
@@ -81,12 +83,12 @@ export default function TrashPage() {
 
   return (
     <div className="px-3 sm:px-5">
-      <PageHeader count={items.length} unit="items in trash" />
+      <PageHeader count={items.length} unit={t("unit.trash")} />
       {items.length === 0 ? (
         <EmptyState
           icon={Trash2}
-          title="Trash is empty"
-          subtitle="Deleted items land here first, so you can restore them before they’re gone for good."
+          title={t("empty.trash.t")}
+          subtitle={t("empty.trash.s")}
         />
       ) : (
         <div className="space-y-2 pb-4">
@@ -97,7 +99,7 @@ export default function TrashPage() {
             >
               <TrashThumb d={d} />
               <div className="min-w-0 flex-1">
-                <p className="truncate text-sm font-medium">{d.meta.name || "Untitled"}</p>
+                <p className="truncate text-sm font-medium">{d.meta.name || t("common.untitled")}</p>
                 <p className="text-xs capitalize text-muted-foreground">{d.item.type}</p>
               </div>
               <Button variant="ghost" size="icon" onClick={() => restore(d.item.id)} aria-label="Restore">

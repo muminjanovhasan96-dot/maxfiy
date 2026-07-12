@@ -16,6 +16,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { toast } from "@/components/ui/toaster";
+import { useT } from "@/lib/i18n";
 import { cn } from "@/lib/utils";
 
 type Pw = NonNullable<ItemMeta["password"]>;
@@ -32,6 +33,7 @@ export function PasswordDialog({
   editing?: DecryptedItem | null;
   onSaved: () => void;
 }) {
+  const t = useT();
   const repo = useVault((s) => s.repo);
   const [p, setP] = useState<Pw>(empty);
   const [show, setShow] = useState(false);
@@ -53,7 +55,7 @@ export function PasswordDialog({
     try {
       if (editing) await repo.updateItem(editing.item.id, { password: p, name: p.title });
       else await repo.addPassword(p);
-      toast.success(editing ? "Updated" : "Saved");
+      toast.success(editing ? t("pw.updated") : t("pw.saved"));
       onSaved();
       onOpenChange(false);
     } finally {
@@ -65,20 +67,19 @@ export function PasswordDialog({
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="max-h-[88vh] overflow-y-auto">
         <DialogHeader>
-          <DialogTitle>{editing ? "Edit login" : "New login"}</DialogTitle>
+          <DialogTitle>{editing ? t("pw.edit") : t("pw.new")}</DialogTitle>
         </DialogHeader>
         <div className="space-y-4">
           <div className="space-y-1.5">
-            <Label>Title</Label>
+            <Label>{t("pw.title")}</Label>
             <Input
               value={p.title}
               onChange={(e) => setP({ ...p, title: e.target.value })}
-              placeholder="e.g. Email account"
               autoFocus
             />
           </div>
           <div className="space-y-1.5">
-            <Label>Username</Label>
+            <Label>{t("pw.username")}</Label>
             <Input
               value={p.username ?? ""}
               onChange={(e) => setP({ ...p, username: e.target.value })}
@@ -86,7 +87,7 @@ export function PasswordDialog({
             />
           </div>
           <div className="space-y-1.5">
-            <Label>Password</Label>
+            <Label>{t("pw.password")}</Label>
             <div className="relative">
               <Input
                 type={show ? "text" : "password"}
@@ -115,7 +116,7 @@ export function PasswordDialog({
                     />
                   ))}
                 </div>
-                <span className="text-xs text-muted-foreground">{strength.label}</span>
+                <span className="text-xs text-muted-foreground">{t(`strength.${strength.score}`)}</span>
               </div>
             )}
             <div className="flex gap-2 pt-1">
@@ -125,7 +126,7 @@ export function PasswordDialog({
                 size="sm"
                 onClick={() => setP({ ...p, password: generatePassword(20) })}
               >
-                <RefreshCw className="h-3.5 w-3.5" /> Strong password
+                <RefreshCw className="h-3.5 w-3.5" /> {t("pw.strong")}
               </Button>
               <Button
                 type="button"
@@ -133,12 +134,12 @@ export function PasswordDialog({
                 size="sm"
                 onClick={() => setP({ ...p, password: generatePassphrase(4) })}
               >
-                <Wand2 className="h-3.5 w-3.5" /> Passphrase
+                <Wand2 className="h-3.5 w-3.5" /> {t("pw.passphrase")}
               </Button>
             </div>
           </div>
           <div className="space-y-1.5">
-            <Label>Website</Label>
+            <Label>{t("pw.website")}</Label>
             <Input
               value={p.url ?? ""}
               onChange={(e) => setP({ ...p, url: e.target.value })}
@@ -147,7 +148,7 @@ export function PasswordDialog({
             />
           </div>
           <div className="space-y-1.5">
-            <Label>Notes</Label>
+            <Label>{t("pw.notes")}</Label>
             <textarea
               value={p.notes ?? ""}
               onChange={(e) => setP({ ...p, notes: e.target.value })}
@@ -158,10 +159,10 @@ export function PasswordDialog({
         </div>
         <DialogFooter>
           <Button variant="secondary" onClick={() => onOpenChange(false)}>
-            Cancel
+            {t("common.cancel")}
           </Button>
           <Button onClick={save} disabled={busy || !p.title.trim() || !p.password}>
-            {busy ? "Saving…" : "Save"}
+            {busy ? t("common.saving") : t("common.save")}
           </Button>
         </DialogFooter>
       </DialogContent>

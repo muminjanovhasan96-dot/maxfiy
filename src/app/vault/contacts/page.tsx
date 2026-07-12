@@ -15,6 +15,7 @@ import { EmptyState, PageHeader } from "@/components/vault/section-ui";
 import { Skeleton } from "@/components/ui/skeleton";
 import { copyPlain } from "@/lib/clipboard";
 import { toast } from "@/components/ui/toaster";
+import { useT } from "@/lib/i18n";
 
 function initials(name: string) {
   return name
@@ -31,6 +32,7 @@ function hue(name: string) {
 }
 
 export default function ContactsPage() {
+  const t = useT();
   const repo = useVault((s) => s.repo);
   const revision = useVault((s) => s.revision);
   const bump = useVault((s) => s.bump);
@@ -61,7 +63,7 @@ export default function ContactsPage() {
   async function del(id: string) {
     await repo?.trash(id);
     bump();
-    toast.success("Contact moved to Trash");
+    toast.success(t("contact.trashed"));
   }
 
   if (!items) {
@@ -76,22 +78,22 @@ export default function ContactsPage() {
 
   return (
     <div className="px-3 sm:px-5">
-      <PageHeader count={items.length} unit="contacts">
+      <PageHeader count={items.length} unit={t("unit.contacts")}>
         <Button
           onClick={() => {
             setEditing(null);
             setDialog(true);
           }}
         >
-          <Plus className="h-4 w-4" /> New
+          <Plus className="h-4 w-4" /> {t("common.new")}
         </Button>
       </PageHeader>
 
       {items.length === 0 ? (
         <EmptyState
           icon={Users}
-          title="No contacts yet"
-          subtitle="Store names, numbers and emails — all encrypted on this device."
+          title={t("empty.contacts.t")}
+          subtitle={t("empty.contacts.s")}
           action={
             <Button
               onClick={() => {
@@ -99,7 +101,7 @@ export default function ContactsPage() {
                 setDialog(true);
               }}
             >
-              <Plus className="h-4 w-4" /> New contact
+              <Plus className="h-4 w-4" /> {t("contact.new")}
             </Button>
           }
         />
@@ -111,7 +113,7 @@ export default function ContactsPage() {
               <div className="overflow-hidden rounded-xl border border-border bg-card">
                 {rows.map((d, i) => {
                   const c = d.meta.contact;
-                  const name = d.meta.name || "Unnamed";
+                  const name = d.meta.name || t("contact.unnamed");
                   return (
                     <div
                       key={d.item.id}
@@ -147,7 +149,7 @@ export default function ContactsPage() {
                       )}
                       {c?.emails?.[0]?.value && (
                         <button
-                          onClick={() => copyPlain(c.emails[0].value, "Email copied")}
+                          onClick={() => copyPlain(c.emails[0].value, t("clip.emailCopied"))}
                           className="rounded-full p-2 text-muted-foreground hover:bg-accent hover:text-foreground"
                         >
                           <Mail className="h-4 w-4" />
@@ -166,10 +168,10 @@ export default function ContactsPage() {
                               setDialog(true);
                             }}
                           >
-                            Edit
+                            {t("common.edit")}
                           </DropdownMenuItem>
                           <DropdownMenuItem destructive onClick={() => del(d.item.id)}>
-                            <Trash2 className="h-4 w-4" /> Delete
+                            <Trash2 className="h-4 w-4" /> {t("common.delete")}
                           </DropdownMenuItem>
                         </DropdownMenuContent>
                       </DropdownMenu>

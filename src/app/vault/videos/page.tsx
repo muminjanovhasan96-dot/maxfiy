@@ -9,14 +9,16 @@ import {
   GallerySkeleton,
   PageHeader,
 } from "@/components/vault/section-ui";
+import { useT } from "@/lib/i18n";
 
 export default function VideosPage() {
+  const t = useT();
   const { stubs, loading } = useTimeline({ type: "video", trashed: false });
 
   return (
     <div className="px-3 sm:px-5">
-      <PageHeader count={stubs.length} unit="videos">
-        <UploadButton kind="video" label="Add videos" />
+      <PageHeader count={stubs.length} unit={t("unit.videos")}>
+        <UploadButton kind="video" label={t("upload.videos")} />
       </PageHeader>
       <DropZone kind="video">
         {loading ? (
@@ -27,9 +29,9 @@ export default function VideosPage() {
             emptyState={
               <EmptyState
                 icon={Video}
-                title="No videos yet"
-                subtitle="Videos are encrypted in chunks so they never load fully into memory — playback starts fast and stays private."
-                action={<UploadButton kind="video" label="Add videos" />}
+                title={t("empty.videos.t")}
+                subtitle={t("empty.videos.s")}
+                action={<UploadButton kind="video" label={t("upload.videos")} />}
               />
             }
           />

@@ -18,8 +18,10 @@ import { EmptyState, PageHeader } from "@/components/vault/section-ui";
 import { Skeleton } from "@/components/ui/skeleton";
 import { formatBytes } from "@/lib/utils";
 import { toast } from "@/components/ui/toaster";
+import { useT } from "@/lib/i18n";
 
 export default function DocumentsPage() {
+  const t = useT();
   const repo = useVault((s) => s.repo);
   const revision = useVault((s) => s.revision);
   const bump = useVault((s) => s.bump);
@@ -32,20 +34,20 @@ export default function DocumentsPage() {
 
   async function download(d: DecryptedItem) {
     if (!repo) return;
-    toast.show("Decrypting…");
+    toast.show(t("doc.decrypting"));
     const blob = await repo.getAssetBlob(d.item);
     triggerDownload(blob, d.meta.name || `document-${d.item.id}`);
   }
   async function del(id: string) {
     await repo?.trash(id);
     bump();
-    toast.success("Moved to Trash");
+    toast.success(t("toast.moved"));
   }
 
   return (
     <div className="px-3 sm:px-5">
-      <PageHeader count={items?.length} unit="documents">
-        <UploadButton kind="document" label="Add files" />
+      <PageHeader count={items?.length} unit={t("unit.documents")}>
+        <UploadButton kind="document" label={t("upload.files")} />
       </PageHeader>
       <DropZone kind="document">
         {!items ? (
@@ -57,9 +59,9 @@ export default function DocumentsPage() {
         ) : items.length === 0 ? (
           <EmptyState
             icon={FileText}
-            title="No documents yet"
-            subtitle="PDFs, scans, and any other files — encrypted before storage. Drag & drop to add."
-            action={<UploadButton kind="document" label="Add files" />}
+            title={t("empty.documents.t")}
+            subtitle={t("empty.documents.s")}
+            action={<UploadButton kind="document" label={t("upload.files")} />}
           />
         ) : (
           <div className="space-y-2 pb-6">
@@ -92,10 +94,10 @@ export default function DocumentsPage() {
                   </DropdownMenuTrigger>
                   <DropdownMenuContent align="end">
                     <DropdownMenuItem onClick={() => download(d)}>
-                      <Download className="h-4 w-4" /> Download
+                      <Download className="h-4 w-4" /> {t("common.download")}
                     </DropdownMenuItem>
                     <DropdownMenuItem destructive onClick={() => del(d.item.id)}>
-                      <Trash2 className="h-4 w-4" /> Delete
+                      <Trash2 className="h-4 w-4" /> {t("common.delete")}
                     </DropdownMenuItem>
                   </DropdownMenuContent>
                 </DropdownMenu>
