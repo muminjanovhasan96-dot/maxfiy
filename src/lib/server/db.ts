@@ -8,8 +8,13 @@
 import type { VaultHeader } from "@/lib/crypto";
 import type { ItemStub, ListOptions, StoredItem } from "@/lib/storage/types";
 
+/** Accept either DATABASE_URL or Vercel's POSTGRES_URL (Neon integration). */
+function connectionString(): string | undefined {
+  return process.env.DATABASE_URL || process.env.POSTGRES_URL;
+}
+
 export function cloudConfigured(): boolean {
-  return !!process.env.DATABASE_URL;
+  return !!connectionString();
 }
 
 type Sql = (strings: TemplateStringsArray, ...values: unknown[]) => Promise<Record<string, unknown>[]>;
@@ -19,7 +24,7 @@ async function getSql(): Promise<Sql> {
   if (!sqlPromise) {
     sqlPromise = (async () => {
       const { neon } = await import("@neondatabase/serverless");
-      const sql = neon(process.env.DATABASE_URL!) as unknown as Sql;
+      const sql = neon(connectionString()!) as unknown as Sql;
       await ensureSchema(sql);
       return sql;
     })();
