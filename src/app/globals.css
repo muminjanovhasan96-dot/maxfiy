@@ -1,0 +1,113 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* Dark is the default. Values are HSL channels for shadcn-style tokens. */
+:root {
+  --radius: 0.9rem;
+
+  /* Light theme */
+  --background: 240 20% 99%;
+  --foreground: 240 10% 8%;
+  --card: 0 0% 100%;
+  --card-foreground: 240 10% 8%;
+  --popover: 0 0% 100%;
+  --popover-foreground: 240 10% 8%;
+  --primary: 211 100% 50%;
+  --primary-foreground: 0 0% 100%;
+  --secondary: 240 6% 95%;
+  --secondary-foreground: 240 10% 12%;
+  --muted: 240 6% 95%;
+  --muted-foreground: 240 4% 46%;
+  --accent: 240 6% 94%;
+  --accent-foreground: 240 10% 12%;
+  --destructive: 0 72% 51%;
+  --destructive-foreground: 0 0% 100%;
+  --border: 240 6% 90%;
+  --input: 240 6% 88%;
+  --ring: 211 100% 50%;
+}
+
+.dark {
+  --background: 240 8% 5%;
+  --foreground: 0 0% 96%;
+  --card: 240 7% 9%;
+  --card-foreground: 0 0% 96%;
+  --popover: 240 8% 8%;
+  --popover-foreground: 0 0% 96%;
+  --primary: 211 100% 55%;
+  --primary-foreground: 0 0% 100%;
+  --secondary: 240 5% 14%;
+  --secondary-foreground: 0 0% 96%;
+  --muted: 240 5% 13%;
+  --muted-foreground: 240 5% 60%;
+  --accent: 240 5% 16%;
+  --accent-foreground: 0 0% 98%;
+  --destructive: 0 72% 55%;
+  --destructive-foreground: 0 0% 100%;
+  --border: 240 5% 16%;
+  --input: 240 5% 18%;
+  --ring: 211 100% 60%;
+}
+
+* {
+  border-color: hsl(var(--border));
+}
+
+html,
+body {
+  height: 100%;
+}
+
+body {
+  background-color: hsl(var(--background));
+  color: hsl(var(--foreground));
+  font-family: theme("fontFamily.sans");
+  -webkit-font-smoothing: antialiased;
+  text-rendering: optimizeLegibility;
+  overscroll-behavior-y: none;
+}
+
+/* Calm, minimal scrollbars */
+::-webkit-scrollbar {
+  width: 10px;
+  height: 10px;
+}
+::-webkit-scrollbar-thumb {
+  background: hsl(var(--border));
+  border-radius: 999px;
+  border: 3px solid transparent;
+  background-clip: content-box;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: hsl(var(--muted-foreground) / 0.5);
+  background-clip: content-box;
+}
+
+@layer utilities {
+  .glass {
+    background: hsl(var(--card) / 0.7);
+    backdrop-filter: blur(20px) saturate(180%);
+    -webkit-backdrop-filter: blur(20px) saturate(180%);
+  }
+  .shimmer {
+    position: relative;
+    overflow: hidden;
+  }
+  .shimmer::after {
+    content: "";
+    position: absolute;
+    inset: 0;
+    transform: translateX(-100%);
+    background: linear-gradient(
+      90deg,
+      transparent,
+      hsl(var(--foreground) / 0.06),
+      transparent
+    );
+    animation: shimmer 1.4s infinite;
+  }
+  .no-tap-highlight {
+    -webkit-tap-highlight-color: transparent;
+  }
+}
