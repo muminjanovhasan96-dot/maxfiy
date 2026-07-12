@@ -290,6 +290,18 @@ export const T: Record<string, Entry> = {
   "clip.unavailable": { uz: "Clipboard mavjud emas", ru: "Буфер обмена недоступен", en: "Clipboard unavailable" },
   "clip.emailCopied": { uz: "Email nusxalandi", ru: "Эл. почта скопирована", en: "Email copied" },
 
+  // ---- data lost (browser cleared local vault) ----
+  "datalost.title": {
+    uz: "Oldingi vault ma’lumotlari o‘chirilgan",
+    ru: "Прежние данные хранилища удалены",
+    en: "Your previous vault was cleared",
+  },
+  "datalost.body": {
+    uz: "Bu brauzer avval yaratgan vaultingizni o‘chirib yuborgan (yashirin/incognito rejim, sayt ma’lumotlari tozalangan yoki xotira cheklovi). Local ma’lumotni tiklab bo‘lmaydi. Yangi vault yarating va saqlanib qolishi uchun: oddiy oynadan foydalaning, doim aynan shu manzilni oching va shifrlangan “Zaxira nusxa”ni saqlab boring.",
+    ru: "Этот браузер удалил созданное ранее хранилище (режим инкогнито, очистка данных сайта или лимит хранилища). Локальные данные восстановить нельзя. Создайте новое хранилище, а чтобы оно сохранялось: используйте обычное окно, всегда открывайте один и тот же адрес и делайте зашифрованную «Резервную копию».",
+    en: "This browser removed the vault you created earlier (private/incognito mode, cleared site data, or storage limits). Local data can’t be recovered. Create a new vault — and to keep it: use a normal window, always open the same address, and keep an encrypted Export backup.",
+  },
+
   // ---- language ----
   "lang.label": { uz: "Til", ru: "Язык", en: "Language" },
 };

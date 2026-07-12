@@ -85,6 +85,7 @@ function Field({
 export function SetupScreen() {
   const t = useT();
   const setup = useVault((s) => s.setup);
+  const dataLost = useVault((s) => s.dataLost);
   const [step, setStep] = useState<1 | 2>(1);
   const [busy, setBusy] = useState(false);
 
@@ -141,6 +142,13 @@ export function SetupScreen() {
           </div>
 
           <InsecureContextBanner />
+
+          {dataLost && step === 1 && (
+            <div className="mb-5 rounded-xl border border-amber-500/30 bg-amber-500/10 p-3 text-xs text-amber-500">
+              <p className="font-semibold">{t("datalost.title")}</p>
+              <p className="mt-0.5 text-amber-500/90">{t("datalost.body")}</p>
+            </div>
+          )}
 
           {step === 1 ? (
             <div className="space-y-4">

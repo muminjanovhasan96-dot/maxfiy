@@ -207,6 +207,39 @@ export function createLocalBackend(): StorageBackend {
   };
 }
 
+/**
+ * Ask the browser to keep our storage from being evicted under disk pressure.
+ * Without this, IndexedDB is "best-effort" and a browser can silently clear the
+ * vault — which looks like "it keeps asking me to register again". Safe to call
+ * repeatedly; resolves to whether storage is now persistent.
+ */
+export async function requestPersistence(): Promise<boolean> {
+  try {
+    if (typeof navigator === "undefined" || !navigator.storage?.persist) return false;
+    if (await navigator.storage.persisted?.()) return true;
+    return await navigator.storage.persist();
+  } catch {
+    return false;
+  }
+}
+
+/** True if a vault has ever been created in this browser (survives header eviction). */
+const REGISTERED_FLAG = "mx_registered";
+export function markRegistered() {
+  try {
+    localStorage.setItem(REGISTERED_FLAG, "1");
+  } catch {
+    /* ignore */
+  }
+}
+export function wasEverRegistered(): boolean {
+  try {
+    return localStorage.getItem(REGISTERED_FLAG) === "1";
+  } catch {
+    return false;
+  }
+}
+
 /** Danger: wipes the entire local vault database. Used by "erase this device". */
 export async function destroyLocalDatabase(): Promise<void> {
   dbPromise = null;

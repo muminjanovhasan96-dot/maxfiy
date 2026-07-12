@@ -7,6 +7,11 @@
 import { create } from "zustand";
 import { createVault, type VaultHeader } from "@/lib/crypto";
 import { getBackend } from "@/lib/storage";
+import {
+  markRegistered,
+  requestPersistence,
+  wasEverRegistered,
+} from "@/lib/storage/indexeddb";
 import { VaultRepository } from "@/lib/repo/vault-repo";
 
 export type VaultStatus =
@@ -21,6 +26,8 @@ interface VaultState {
   repo: VaultRepository | null;
   /** bumps whenever the item set changes, so lists can re-query. */
   revision: number;
+  /** true when a vault was created before but its local data is now gone. */
+  dataLost: boolean;
 
   init: () => Promise<void>;
   setup: (input: {
@@ -40,17 +47,26 @@ export const useVault = create<VaultState>((set, get) => ({
   header: null,
   repo: null,
   revision: 0,
+  dataLost: false,
 
   async init() {
+    // Ask the browser not to evict our vault, then look for an existing header.
+    void requestPersistence();
     const header = await getBackend().metadata.getHeader();
-    set({ header, status: header ? "locked" : "needs-setup" });
+    if (header) {
+      set({ header, status: "locked", dataLost: false });
+    } else {
+      set({ header: null, status: "needs-setup", dataLost: wasEverRegistered() });
+    }
   },
 
   async setup(input) {
     const { header, masterKey } = await createVault({ ...input, now: Date.now() });
     await getBackend().metadata.putHeader(header);
+    void requestPersistence();
+    markRegistered();
     const repo = new VaultRepository(masterKey);
-    set({ header, repo, status: "unlocked" });
+    set({ header, repo, status: "unlocked", dataLost: false });
   },
 
   openWithMasterKey(masterKey, header) {
