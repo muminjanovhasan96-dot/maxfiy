@@ -8,9 +8,26 @@
 import type { VaultHeader } from "@/lib/crypto";
 import type { ItemStub, ListOptions, StoredItem } from "@/lib/storage/types";
 
-/** Accept either DATABASE_URL or Vercel's POSTGRES_URL (Neon integration). */
+/**
+ * Find the Postgres connection string. Accepts the common names first, then —
+ * to survive Vercel/Neon custom env-var prefixes (e.g. STORAGE_DATABASE_URL) —
+ * scans every env value for a postgres:// URL, preferring a pooled one (best for
+ * the serverless HTTP driver).
+ */
 function connectionString(): string | undefined {
-  return process.env.DATABASE_URL || process.env.POSTGRES_URL;
+  const explicit =
+    process.env.DATABASE_URL ||
+    process.env.POSTGRES_URL ||
+    process.env.POSTGRES_PRISMA_URL ||
+    process.env.DATABASE_URL_UNPOOLED ||
+    process.env.POSTGRES_URL_NON_POOLING;
+  if (explicit) return explicit;
+
+  const candidates = Object.values(process.env).filter(
+    (v): v is string => typeof v === "string" && /^postgres(ql)?:\/\//.test(v),
+  );
+  if (candidates.length === 0) return undefined;
+  return candidates.find((v) => v.includes("-pooler.")) ?? candidates[0];
 }
 
 export function cloudConfigured(): boolean {

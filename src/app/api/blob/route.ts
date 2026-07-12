@@ -9,8 +9,12 @@ import { requireSession } from "@/lib/server/session";
 export const runtime = "nodejs";
 export const maxDuration = 60;
 
+/** Blob RW token, tolerant of custom env-var prefixes (Vercel tokens start with vercel_blob_rw_). */
 function token() {
-  return process.env.BLOB_READ_WRITE_TOKEN;
+  if (process.env.BLOB_READ_WRITE_TOKEN) return process.env.BLOB_READ_WRITE_TOKEN;
+  return Object.values(process.env).find(
+    (v) => typeof v === "string" && v.startsWith("vercel_blob_rw_"),
+  );
 }
 
 export async function PUT(req: NextRequest) {
