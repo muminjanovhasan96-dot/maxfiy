@@ -16,6 +16,23 @@ import type {
   StoredItem,
 } from "./types";
 
+/**
+ * Open an owner session by presenting the master-key-derived auth key. The server
+ * verifies it against the public header verifier and sets an httpOnly cookie.
+ */
+export async function establishCloudSession(authKeyB64: string): Promise<void> {
+  const res = await fetch("/api/session", {
+    method: "POST",
+    headers: { "content-type": "application/json" },
+    credentials: "same-origin",
+    body: JSON.stringify({ authKey: authKeyB64 }),
+  });
+  if (!res.ok) {
+    const body = await res.text().catch(() => "");
+    throw new Error(`Cloud sign-in failed (${res.status}): ${body}`);
+  }
+}
+
 async function api<T>(path: string, init?: RequestInit): Promise<T> {
   const res = await fetch(path, {
     ...init,

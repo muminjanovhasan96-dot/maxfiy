@@ -8,6 +8,7 @@
  */
 import { fromBase64, toBase64 } from "./bytes";
 import {
+  deriveAuthHash,
   doubleWrapMasterKey,
   ensureWebCrypto,
   generateMasterKey,
@@ -31,6 +32,8 @@ export interface VaultHeader {
   wrappedMaster: SealedBytes;
   /** the SAME master key, wrapped so both recovery words (1 outer, 2 inner) are required. */
   wrappedMasterRecovery: SealedBytes;
+  /** SHA-256(SHA-256(masterKey‖ctx)) — public verifier used to gate the cloud API. */
+  authHash?: string;
   createdAt: number;
 }
 
@@ -74,6 +77,7 @@ export async function createVault(
   const masterKey = generateMasterKey();
   const wrappedMaster = await doubleWrapMasterKey(keyA, keyB, masterKey);
   const wrappedMasterRecovery = await doubleWrapMasterKey(keyR1, keyR2, masterKey);
+  const authHash = await deriveAuthHash(masterKey);
 
   const header: VaultHeader = {
     version: VAULT_VERSION,
@@ -84,6 +88,7 @@ export async function createVault(
     saltR2,
     wrappedMaster,
     wrappedMasterRecovery,
+    authHash,
     createdAt: input.now,
   };
   return { header, masterKey };

@@ -11,10 +11,58 @@
  *   verifies independently via its GCM auth tag — that's the "Password A accepted,
  *   now enter Password B" behaviour, expressed cryptographically.
  */
-import { concatBytes, fromBase64, randomBytes, toBase64 } from "./bytes";
+import { concatBytes, fromBase64, randomBytes, toBase64, utf8 } from "./bytes";
 
 const IV_LENGTH = 12; // 96-bit nonce, the recommended size for AES-GCM.
 const KEY_LENGTH = 32; // AES-256.
+
+// ---------------------------------------------------------------------------
+// Cloud API authentication derived from the master key (no extra password).
+//
+// The server never sees the master key or the passwords. To prove "I know the
+// passwords" for a shared cloud vault, the client derives an auth key from the
+// master key and sends it over TLS to open a session. The server stores only a
+// hash of it (in the public vault header) and compares. Possessing the auth key
+// requires having decrypted the master key = knowing both passwords (or the two
+// recovery words). This is the Bitwarden-style split of "key to decrypt" vs
+// "value to authenticate".
+// ---------------------------------------------------------------------------
+
+const AUTH_CONTEXT = utf8("maxfiy-auth-v1");
+
+async function sha256(data: Uint8Array): Promise<Uint8Array> {
+  return new Uint8Array(await crypto.subtle.digest("SHA-256", data));
+}
+
+/** The auth key the client presents to /api/session (base64). */
+export async function deriveAuthKeyB64(masterKey: Uint8Array): Promise<string> {
+  const authKey = await sha256(concatBytes(masterKey, AUTH_CONTEXT));
+  return toBase64(authKey);
+}
+
+/** The verifier stored in the header: SHA-256(authKey), base64. Safe to be public. */
+export async function deriveAuthHash(masterKey: Uint8Array): Promise<string> {
+  const authKey = await sha256(concatBytes(masterKey, AUTH_CONTEXT));
+  return toBase64(await sha256(authKey));
+}
+
+/** Server-side check: does this presented authKey match the stored authHash? */
+export async function verifyAuthKeyB64(
+  authKeyB64: string,
+  authHashB64: string,
+): Promise<boolean> {
+  try {
+    const authKey = fromBase64(authKeyB64);
+    const computed = toBase64(await sha256(authKey));
+    // constant-time-ish compare on equal-length base64 strings
+    if (computed.length !== authHashB64.length) return false;
+    let diff = 0;
+    for (let i = 0; i < computed.length; i++) diff |= computed.charCodeAt(i) ^ authHashB64.charCodeAt(i);
+    return diff === 0;
+  } catch {
+    return false;
+  }
+}
 
 /**
  * Web Crypto's `crypto.subtle` only exists in a *secure context*. That means an

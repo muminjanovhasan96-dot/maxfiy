@@ -5,14 +5,22 @@
  * zeroes the key, and clears decrypted caches.
  */
 import { create } from "zustand";
-import { createVault, type VaultHeader } from "@/lib/crypto";
+import { createVault, deriveAuthKeyB64, type VaultHeader } from "@/lib/crypto";
 import { getBackend } from "@/lib/storage";
 import {
   markRegistered,
   requestPersistence,
   wasEverRegistered,
 } from "@/lib/storage/indexeddb";
+import { establishCloudSession } from "@/lib/storage/remote";
 import { VaultRepository } from "@/lib/repo/vault-repo";
+
+/** In cloud mode, open an API session proving password knowledge. No-op locally. */
+async function maybeCloudSession(masterKey: Uint8Array): Promise<void> {
+  if (getBackend().kind !== "cloud") return;
+  const authKey = await deriveAuthKeyB64(masterKey);
+  await establishCloudSession(authKey);
+}
 
 export type VaultStatus =
   | "loading"
@@ -37,7 +45,7 @@ interface VaultState {
     word2: string;
   }) => Promise<void>;
   /** Complete an unlock once the master key has been recovered client-side. */
-  openWithMasterKey: (masterKey: Uint8Array, header: VaultHeader) => void;
+  openWithMasterKey: (masterKey: Uint8Array, header: VaultHeader) => Promise<void>;
   lock: () => void;
   bump: () => void;
 }
@@ -62,16 +70,21 @@ export const useVault = create<VaultState>((set, get) => ({
 
   async setup(input) {
     const { header, masterKey } = await createVault({ ...input, now: Date.now() });
+    // First-run header write (allowed without a session when the vault is empty),
+    // then open a session so subsequent item/blob writes are authorized.
     await getBackend().metadata.putHeader(header);
+    await maybeCloudSession(masterKey);
     void requestPersistence();
     markRegistered();
     const repo = new VaultRepository(masterKey);
     set({ header, repo, status: "unlocked", dataLost: false });
   },
 
-  openWithMasterKey(masterKey, header) {
+  async openWithMasterKey(masterKey, header) {
+    await maybeCloudSession(masterKey);
+    markRegistered();
     const repo = new VaultRepository(masterKey);
-    set({ repo, header, status: "unlocked" });
+    set({ repo, header, status: "unlocked", dataLost: false });
   },
 
   lock() {

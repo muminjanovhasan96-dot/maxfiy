@@ -75,7 +75,7 @@ export function LockScreen() {
         if (!stageA) return reset("a");
         const master = await loginStageB(header, stageA, value);
         await lockout.success();
-        openWithMasterKey(master, header);
+        await openWithMasterKey(master, header);
       } else if (stage === "recovery1") {
         const res = await recoveryStage1(header, value);
         setRecovery1(res);
@@ -85,7 +85,7 @@ export function LockScreen() {
         if (!recovery1) return reset("recovery1");
         const master = await recoveryStage2(header, recovery1, value);
         await lockout.success();
-        openWithMasterKey(master, header);
+        await openWithMasterKey(master, header);
       }
     } catch {
       const status = await lockout.fail();
