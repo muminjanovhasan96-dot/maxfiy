@@ -3,6 +3,7 @@ import { headers } from "next/headers";
 import "./globals.css";
 import { ThemeProvider } from "@/components/theme-provider";
 import { I18nBoot } from "@/components/i18n-boot";
+import { VaultBoot } from "@/components/vault-boot";
 import { Toaster } from "@/components/ui/toaster";
 
 export const metadata: Metadata = {
@@ -41,6 +42,7 @@ export default async function RootLayout({
       <body>
         <ThemeProvider>
           <I18nBoot />
+          <VaultBoot />
           {children}
           <Toaster />
         </ThemeProvider>

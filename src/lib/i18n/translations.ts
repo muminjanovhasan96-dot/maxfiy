@@ -35,17 +35,17 @@ export const T: Record<string, Entry> = {
   // ---- setup ----
   "setup.title": { uz: "Vault yaratish", ru: "Создайте хранилище", en: "Create your vault" },
   "setup.sub1": {
-    uz: "Ikkita parol tanlang. Ochish uchun ikkalasi ham kerak.",
-    ru: "Выберите два пароля. Оба нужны для входа.",
-    en: "Choose two passwords. Both are required to unlock.",
+    uz: "Bitta kuchli parol tanlang. Kirish uchun shu parol ishlatiladi.",
+    ru: "Выберите один надёжный пароль. Им вы будете входить.",
+    en: "Choose one strong password. You’ll unlock with it.",
   },
   "setup.sub2": {
     uz: "Parollarni unutsangiz uchun ikkita tiklash so‘zi belgilang.",
     ru: "Задайте два слова для восстановления на случай, если забудете пароли.",
     en: "Set two recovery words in case you forget your passwords.",
   },
-  "setup.pw1": { uz: "Birinchi parol", ru: "Первый пароль", en: "First password" },
-  "setup.pw1c": { uz: "Birinchi parolni tasdiqlang", ru: "Подтвердите первый пароль", en: "Confirm first password" },
+  "setup.pw1": { uz: "Parol", ru: "Пароль", en: "Password" },
+  "setup.pw1c": { uz: "Parolni tasdiqlang", ru: "Подтвердите пароль", en: "Confirm password" },
   "setup.pw2": { uz: "Ikkinchi parol", ru: "Второй пароль", en: "Second password" },
   "setup.pw2c": { uz: "Ikkinchi parolni tasdiqlang", ru: "Подтвердите второй пароль", en: "Confirm second password" },
   "setup.diffWarn": {
@@ -91,11 +91,11 @@ export const T: Record<string, Entry> = {
   },
 
   // ---- lock screen ----
-  "lock.sub.a": { uz: "Boshlash uchun birinchi parolni kiriting.", ru: "Введите первый пароль, чтобы начать.", en: "Enter your first password to begin." },
+  "lock.sub.a": { uz: "Kirish uchun parolingizni kiriting.", ru: "Введите пароль, чтобы войти.", en: "Enter your password to unlock." },
   "lock.sub.b": { uz: "Yana bir qadam — ikkinchi parol bilan tasdiqlang.", ru: "Ещё один шаг — подтвердите вторым паролем.", en: "One more step — confirm with your second password." },
   "lock.sub.r1": { uz: "Ikki maxfiy so‘zdan birinchisini kiriting.", ru: "Введите первое из двух секретных слов.", en: "Enter the first of your two secret recovery words." },
   "lock.sub.r2": { uz: "Endi ikkinchi maxfiy so‘zni tasdiqlang.", ru: "Теперь подтвердите второе секретное слово.", en: "Now confirm the second secret word." },
-  "lock.label.a": { uz: "Birinchi parol", ru: "Первый пароль", en: "First password" },
+  "lock.label.a": { uz: "Parol", ru: "Пароль", en: "Password" },
   "lock.label.b": { uz: "Ikkinchi parol", ru: "Второй пароль", en: "Second password" },
   "lock.label.r1": { uz: "Maxfiy so‘z 1", ru: "Секретное слово 1", en: "Secret word 1" },
   "lock.label.r2": { uz: "Maxfiy so‘z 2", ru: "Секретное слово 2", en: "Secret word 2" },

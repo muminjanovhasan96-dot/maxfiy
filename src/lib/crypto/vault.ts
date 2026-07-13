@@ -1,10 +1,12 @@
 /**
- * High-level vault crypto: create the vault, and the staged unlock / recovery
- * flows. This ties together the KDF and the double-envelope from envelope.ts.
+ * High-level vault crypto: create the vault, and the unlock / recovery flows.
  *
  * The "VaultHeader" is the only crypto material stored server-side. It contains
  * NO secrets — only KDF parameters, random salts, and the wrapped (encrypted)
- * master key. It cannot be used to read any vault content without the passwords.
+ * master key. It cannot open any content without the password.
+ *
+ * Login uses ONE password (single envelope). Recovery uses TWO secret words
+ * (double envelope) as an independent backup path to the same master key.
  */
 import { fromBase64, toBase64 } from "./bytes";
 import {
@@ -12,34 +14,35 @@ import {
   doubleWrapMasterKey,
   ensureWebCrypto,
   generateMasterKey,
+  open,
   openInnerLayer,
   openOuterLayer,
+  seal,
   type OuterOpened,
   type SealedBytes,
 } from "./envelope";
 import { DEFAULT_KDF, deriveKeyBytes, type KdfParams } from "./kdf";
 
-export const VAULT_VERSION = 1;
+export const VAULT_VERSION = 2;
 
 export interface VaultHeader {
   version: number;
   kdf: KdfParams;
-  saltA: string; // base64
-  saltB: string;
-  saltR1: string;
-  saltR2: string;
-  /** master key wrapped so both login passwords (A outer, B inner) are required. */
+  saltA: string; // base64 — login password salt
+  saltB?: string; // legacy (v1 two-password vaults); unused in v2
+  saltR1: string; // recovery word 1 salt
+  saltR2: string; // recovery word 2 salt
+  /** master key wrapped by the login password (single AES-GCM envelope). */
   wrappedMaster: SealedBytes;
-  /** the SAME master key, wrapped so both recovery words (1 outer, 2 inner) are required. */
+  /** the SAME master key, wrapped so both recovery words are required. */
   wrappedMasterRecovery: SealedBytes;
-  /** SHA-256(SHA-256(masterKey‖ctx)) — public verifier used to gate the cloud API. */
+  /** public verifier used to gate the cloud API (never reveals the key). */
   authHash?: string;
   createdAt: number;
 }
 
 export interface CreateVaultInput {
-  passwordA: string;
-  passwordB: string;
+  password: string;
   word1: string;
   word2: string;
   kdf?: KdfParams;
@@ -53,9 +56,9 @@ function newSaltB64(len = 16): string {
 }
 
 /**
- * First-run setup. Generates a random master key, wraps it two ways (login +
- * recovery), and returns the header to persist plus the live master key so the
- * caller can immediately start using the vault.
+ * First-run setup. Generates a random master key, wraps it for login (one
+ * password) and for recovery (two words), and returns the header to persist plus
+ * the live master key.
  */
 export async function createVault(
   input: CreateVaultInput,
@@ -63,19 +66,17 @@ export async function createVault(
   ensureWebCrypto();
   const kdf = input.kdf ?? DEFAULT_KDF;
   const saltA = newSaltB64();
-  const saltB = newSaltB64();
   const saltR1 = newSaltB64();
   const saltR2 = newSaltB64();
 
-  const [keyA, keyB, keyR1, keyR2] = await Promise.all([
-    deriveKeyBytes(input.passwordA, fromBase64(saltA), kdf),
-    deriveKeyBytes(input.passwordB, fromBase64(saltB), kdf),
+  const [keyA, keyR1, keyR2] = await Promise.all([
+    deriveKeyBytes(input.password, fromBase64(saltA), kdf),
     deriveKeyBytes(input.word1, fromBase64(saltR1), kdf),
     deriveKeyBytes(input.word2, fromBase64(saltR2), kdf),
   ]);
 
   const masterKey = generateMasterKey();
-  const wrappedMaster = await doubleWrapMasterKey(keyA, keyB, masterKey);
+  const wrappedMaster = await seal(keyA, masterKey);
   const wrappedMasterRecovery = await doubleWrapMasterKey(keyR1, keyR2, masterKey);
   const authHash = await deriveAuthHash(masterKey);
 
@@ -83,7 +84,6 @@ export async function createVault(
     version: VAULT_VERSION,
     kdf,
     saltA,
-    saltB,
     saltR1,
     saltR2,
     wrappedMaster,
@@ -95,33 +95,17 @@ export async function createVault(
 }
 
 // ---------------------------------------------------------------------------
-// Staged login: Password A, then Password B
+// Login: one password
 // ---------------------------------------------------------------------------
 
-export interface StageAResult {
-  /** Opaque handle to pass into stage B. Contains the inner (Password-B) layer. */
-  outer: OuterOpened;
-}
-
-/** Verify Password A. Throws if wrong (the GCM tag on the outer layer won't match). */
-export async function loginStageA(
+/** Verify the password and recover the master key. Throws if wrong. */
+export async function login(
   header: VaultHeader,
-  passwordA: string,
-): Promise<StageAResult> {
-  ensureWebCrypto();
-  const keyA = await deriveKeyBytes(passwordA, fromBase64(header.saltA), header.kdf);
-  const outer = await openOuterLayer(keyA, header.wrappedMaster);
-  return { outer };
-}
-
-/** Verify Password B and recover the master key. Throws if wrong. */
-export async function loginStageB(
-  header: VaultHeader,
-  stageA: StageAResult,
-  passwordB: string,
+  password: string,
 ): Promise<Uint8Array> {
-  const keyB = await deriveKeyBytes(passwordB, fromBase64(header.saltB), header.kdf);
-  return openInnerLayer(keyB, stageA.outer.inner);
+  ensureWebCrypto();
+  const keyA = await deriveKeyBytes(password, fromBase64(header.saltA), header.kdf);
+  return open(keyA, header.wrappedMaster);
 }
 
 // ---------------------------------------------------------------------------
@@ -158,17 +142,12 @@ export async function recoveryStage2(
 export async function rewrapForLogin(
   header: VaultHeader,
   masterKey: Uint8Array,
-  passwordA: string,
-  passwordB: string,
+  password: string,
 ): Promise<VaultHeader> {
   const saltA = newSaltB64();
-  const saltB = newSaltB64();
-  const [keyA, keyB] = await Promise.all([
-    deriveKeyBytes(passwordA, fromBase64(saltA), header.kdf),
-    deriveKeyBytes(passwordB, fromBase64(saltB), header.kdf),
-  ]);
-  const wrappedMaster = await doubleWrapMasterKey(keyA, keyB, masterKey);
-  return { ...header, saltA, saltB, wrappedMaster };
+  const keyA = await deriveKeyBytes(password, fromBase64(saltA), header.kdf);
+  const wrappedMaster = await seal(keyA, masterKey);
+  return { ...header, saltA, wrappedMaster };
 }
 
 export async function rewrapForRecovery(

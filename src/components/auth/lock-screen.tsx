@@ -3,12 +3,10 @@ import { useState } from "react";
 import { AnimatePresence, motion } from "framer-motion";
 import { Eye, EyeOff, Fingerprint, KeyRound, Lock, ShieldAlert } from "lucide-react";
 import {
-  loginStageA,
-  loginStageB,
+  login,
   recoveryStage1,
   recoveryStage2,
   type RecoveryStage1Result,
-  type StageAResult,
 } from "@/lib/crypto";
 import { useLockout } from "@/lib/auth/use-lockout";
 import { useVault } from "@/store/vault-store";
@@ -21,7 +19,7 @@ import { InsecureContextBanner } from "./insecure-context-banner";
 import { LanguageSwitcher } from "@/components/vault/language-switcher";
 import { cn } from "@/lib/utils";
 
-type Stage = "a" | "b" | "recovery1" | "recovery2";
+type Stage = "password" | "recovery1" | "recovery2";
 
 function formatCountdown(ms: number): string {
   const total = Math.ceil(ms / 1000);
@@ -31,8 +29,7 @@ function formatCountdown(ms: number): string {
 }
 
 const STAGE_KEYS: Record<Stage, { sub: string; label: string; cta: string }> = {
-  a: { sub: "lock.sub.a", label: "lock.label.a", cta: "lock.cta.a" },
-  b: { sub: "lock.sub.b", label: "lock.label.b", cta: "lock.cta.b" },
+  password: { sub: "lock.sub.a", label: "lock.label.a", cta: "lock.cta.b" },
   recovery1: { sub: "lock.sub.r1", label: "lock.label.r1", cta: "lock.cta.r1" },
   recovery2: { sub: "lock.sub.r2", label: "lock.label.r2", cta: "lock.cta.r2" },
 };
@@ -43,12 +40,11 @@ export function LockScreen() {
   const openWithMasterKey = useVault((s) => s.openWithMasterKey);
   const lockout = useLockout();
 
-  const [stage, setStage] = useState<Stage>("a");
+  const [stage, setStage] = useState<Stage>("password");
   const [value, setValue] = useState("");
   const [show, setShow] = useState(false);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [stageA, setStageA] = useState<StageAResult | null>(null);
   const [recovery1, setRecovery1] = useState<RecoveryStage1Result | null>(null);
 
   const isRecovery = stage === "recovery1" || stage === "recovery2";
@@ -66,14 +62,8 @@ export function LockScreen() {
     setBusy(true);
     setError(null);
     try {
-      if (stage === "a") {
-        const res = await loginStageA(header, value);
-        setStageA(res);
-        await lockout.success();
-        reset("b");
-      } else if (stage === "b") {
-        if (!stageA) return reset("a");
-        const master = await loginStageB(header, stageA, value);
+      if (stage === "password") {
+        const master = await login(header, value);
         await lockout.success();
         await openWithMasterKey(master, header);
       } else if (stage === "recovery1") {
@@ -92,10 +82,9 @@ export function LockScreen() {
       if (status.locked) {
         setError(null);
       } else {
-        setError(stage === "a" || stage === "recovery1" ? t("lock.err1") : t("lock.err2"));
+        setError(stage === "recovery1" ? t("lock.err1") : t("lock.err2"));
       }
-      if (stage === "b") reset("a");
-      else if (stage === "recovery2") reset("recovery1");
+      if (stage === "recovery2") reset("recovery1");
       else setValue("");
     } finally {
       setBusy(false);
@@ -137,17 +126,19 @@ export function LockScreen() {
             <LockedNotice remaining={lockout.remaining} />
           ) : (
             <form onSubmit={onSubmit} className="space-y-4">
-              <div className="mb-1 flex items-center justify-center gap-1.5">
-                {(isRecovery ? ["recovery1", "recovery2"] : ["a", "b"]).map((s) => (
-                  <span
-                    key={s}
-                    className={cn(
-                      "h-1.5 rounded-full transition-all",
-                      s === stage ? "w-6 bg-primary" : "w-1.5 bg-muted",
-                    )}
-                  />
-                ))}
-              </div>
+              {isRecovery && (
+                <div className="mb-1 flex items-center justify-center gap-1.5">
+                  {["recovery1", "recovery2"].map((s) => (
+                    <span
+                      key={s}
+                      className={cn(
+                        "h-1.5 rounded-full transition-all",
+                        s === stage ? "w-6 bg-primary" : "w-1.5 bg-muted",
+                      )}
+                    />
+                  ))}
+                </div>
+              )}
 
               <AnimatePresence mode="wait">
                 <motion.div
@@ -211,7 +202,7 @@ export function LockScreen() {
                 ) : (
                   <button
                     type="button"
-                    onClick={() => reset("a")}
+                    onClick={() => reset("password")}
                     className="text-sm text-muted-foreground transition-colors hover:text-foreground"
                   >
                     {t("lock.backToLogin")}

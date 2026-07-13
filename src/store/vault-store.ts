@@ -6,7 +6,7 @@
  */
 import { create } from "zustand";
 import { createVault, deriveAuthKeyB64, type VaultHeader } from "@/lib/crypto";
-import { getBackend } from "@/lib/storage";
+import { detectBackend, getBackend } from "@/lib/storage";
 import {
   markRegistered,
   requestPersistence,
@@ -39,8 +39,7 @@ interface VaultState {
 
   init: () => Promise<void>;
   setup: (input: {
-    passwordA: string;
-    passwordB: string;
+    password: string;
     word1: string;
     word2: string;
   }) => Promise<void>;
@@ -58,17 +57,27 @@ export const useVault = create<VaultState>((set, get) => ({
   dataLost: false,
 
   async init() {
-    // Ask the browser not to evict our vault, then look for an existing header.
+    // Don't clobber an active in-memory session (init can run on every route).
+    if (get().status === "unlocked") return;
+    // Auto-detect cloud vs local, then look for an existing header.
+    await detectBackend();
     void requestPersistence();
-    const header = await getBackend().metadata.getHeader();
+    let header: VaultHeader | null = null;
+    try {
+      header = await getBackend().metadata.getHeader();
+    } catch {
+      header = null;
+    }
     if (header) {
       set({ header, status: "locked", dataLost: false });
     } else {
-      set({ header: null, status: "needs-setup", dataLost: wasEverRegistered() });
+      const lost = getBackend().kind === "local" && wasEverRegistered();
+      set({ header: null, status: "needs-setup", dataLost: lost });
     }
   },
 
   async setup(input) {
+    await detectBackend();
     const { header, masterKey } = await createVault({ ...input, now: Date.now() });
     // First-run header write (allowed without a session when the vault is empty),
     // then open a session so subsequent item/blob writes are authorized.

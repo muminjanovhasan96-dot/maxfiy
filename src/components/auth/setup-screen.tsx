@@ -91,23 +91,20 @@ export function SetupScreen() {
 
   const [pwA, setPwA] = useState("");
   const [pwA2, setPwA2] = useState("");
-  const [pwB, setPwB] = useState("");
-  const [pwB2, setPwB2] = useState("");
   const [w1, setW1] = useState("");
   const [w2, setW2] = useState("");
   const [ack, setAck] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  const step1Valid =
-    pwA.length >= 8 && pwA === pwA2 && pwB.length >= 8 && pwB === pwB2 && pwA !== pwB;
-  const step2Valid = w1.trim().length >= 3 && w2.trim().length >= 3 && w1 !== w2 && ack;
+  const step1Valid = pwA.length >= 6 && pwA === pwA2;
+  const step2Valid = w1.trim().length >= 2 && w2.trim().length >= 2 && w1 !== w2 && ack;
 
   async function onCreate() {
     if (!step2Valid || busy) return;
     setBusy(true);
     setError(null);
     try {
-      await setup({ passwordA: pwA, passwordB: pwB, word1: w1.trim(), word2: w2.trim() });
+      await setup({ password: pwA, word1: w1.trim(), word2: w2.trim() });
       toast.success(t("toast.vaultCreated"));
     } catch (err) {
       const message = err instanceof Error ? `${err.name}: ${err.message}` : String(err);
@@ -154,12 +151,6 @@ export function SetupScreen() {
             <div className="space-y-4">
               <Field id="pwA" label={t("setup.pw1")} value={pwA} onChange={setPwA} showMeter />
               <Field id="pwA2" label={t("setup.pw1c")} value={pwA2} onChange={setPwA2} />
-              <div className="h-px bg-border" />
-              <Field id="pwB" label={t("setup.pw2")} value={pwB} onChange={setPwB} showMeter />
-              <Field id="pwB2" label={t("setup.pw2c")} value={pwB2} onChange={setPwB2} />
-              {pwA && pwB && pwA === pwB && (
-                <p className="text-xs text-amber-500">{t("setup.diffWarn")}</p>
-              )}
               <Button size="lg" className="w-full" disabled={!step1Valid} onClick={() => setStep(2)}>
                 {t("common.continue")}
               </Button>
