@@ -9,15 +9,7 @@
 import { NextResponse, type NextRequest } from "next/server";
 import { putBlobRef, getBlobRef, removeBlobRef } from "@/lib/server/db";
 import { requireSession } from "@/lib/server/session";
-
-export const runtime = "nodejs";
-
-function blobToken(): string | undefined {
-  if (process.env.BLOB_READ_WRITE_TOKEN) return process.env.BLOB_READ_WRITE_TOKEN;
-  return Object.values(process.env).find(
-    (v) => typeof v === "string" && v.startsWith("vercel_blob_rw_"),
-  );
-}
+import { resolveBlobToken } from "@/lib/server/blob-token";
 
 export async function PUT(req: NextRequest) {
   const unauth = await requireSession(req);
@@ -39,7 +31,7 @@ export async function DELETE(req: NextRequest) {
   const url = await getBlobRef(key);
   if (url) {
     const { del } = await import("@vercel/blob");
-    await del(url, { token: blobToken() });
+    await del(url, { token: resolveBlobToken() });
     await removeBlobRef(key);
   }
   return NextResponse.json({ ok: true });

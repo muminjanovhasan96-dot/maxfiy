@@ -8,22 +8,14 @@ import { handleUpload, type HandleUploadBody } from "@vercel/blob/client";
 import { NextResponse, type NextRequest } from "next/server";
 import { hasValidSession } from "@/lib/server/session";
 import { putBlobRef } from "@/lib/server/db";
+import { resolveBlobToken } from "@/lib/server/blob-token";
 
 export const runtime = "nodejs";
 
-function blobToken(): string | undefined {
-  if (process.env.BLOB_READ_WRITE_TOKEN) return process.env.BLOB_READ_WRITE_TOKEN;
-  return Object.values(process.env).find(
-    (v) => typeof v === "string" && v.startsWith("vercel_blob_rw_"),
-  );
-}
-
 export async function POST(req: NextRequest) {
-  // Ensure the SDK can read the token even under a custom env-var prefix.
-  const token = blobToken();
-  if (token && !process.env.BLOB_READ_WRITE_TOKEN) {
-    process.env.BLOB_READ_WRITE_TOKEN = token;
-  }
+  // Normalize the token (strip stray quotes/whitespace) so handleUpload signs
+  // client tokens the Blob API will accept.
+  resolveBlobToken();
 
   const body = (await req.json()) as HandleUploadBody;
   try {
