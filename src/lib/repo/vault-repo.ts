@@ -121,6 +121,9 @@ export class VaultRepository {
     kind: "photo" | "video",
     onProgress?: (fraction: number) => void,
   ): Promise<StoredItem> {
+    const t0 = performance.now();
+    const mark = (label: string) =>
+      console.log(`[upload:${file.name}] ${label} @ ${(performance.now() - t0).toFixed(0)}ms`);
     const dek = generateDek();
     onProgress?.(0.05);
 
@@ -136,6 +139,7 @@ export class VaultRepository {
       console.warn("Thumbnail generation failed; using placeholder:", err);
       thumb = await placeholderThumbnail();
     }
+    mark("thumbnail-done");
     onProgress?.(0.2);
 
     // Downscale big photos so they upload fast over mobile networks.
@@ -152,9 +156,11 @@ export class VaultRepository {
         /* keep original */
       }
     }
+    mark(`compressed (${(content.size / 1024).toFixed(0)}KB)`);
 
     const { blob: encBlob, meta: streamMeta } = await encryptFileToBlob(dek, content);
     const encThumb = await sealRawToBlob(dek, new Uint8Array(await thumb.blob.arrayBuffer()));
+    mark("encrypted");
     onProgress?.(0.35);
 
     const id = newId();
@@ -165,6 +171,7 @@ export class VaultRepository {
       this.backend.blobs.put(blobKey, encBlob),
       this.backend.blobs.put(thumbKey, encThumb),
     ]);
+    mark("uploaded");
     onProgress?.(0.9);
 
     const capturedAt = file.lastModified || Date.now();

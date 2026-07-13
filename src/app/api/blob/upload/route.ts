@@ -7,7 +7,6 @@
 import { handleUpload, type HandleUploadBody } from "@vercel/blob/client";
 import { NextResponse, type NextRequest } from "next/server";
 import { hasValidSession } from "@/lib/server/session";
-import { putBlobRef } from "@/lib/server/db";
 import { resolveBlobToken } from "@/lib/server/blob-token";
 
 export const runtime = "nodejs";
@@ -31,10 +30,10 @@ export async function POST(req: NextRequest) {
           maximumSizeInBytes: 1024 * 1024 * 1024, // 1 GB
         };
       },
-      onUploadCompleted: async ({ blob }) => {
-        // Fires in production (Vercel calls back). The client also records the
-        // mapping for local/dev robustness.
-        await putBlobRef(blob.pathname, blob.url);
+      onUploadCompleted: async () => {
+        // No-op: the client records the key->url mapping right after upload().
+        // Vercel holds the client's upload open until this callback returns, so
+        // doing DB work (or throwing) here would stall/retry the whole upload.
       },
     });
     return NextResponse.json(json);
