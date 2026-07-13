@@ -92,13 +92,21 @@ class RemoteMetadataStore implements MetadataStore {
 
 class RemoteBlobStore implements BlobStore {
   async put(key: string, data: Blob): Promise<void> {
-    // Stream the ciphertext to the server, which stores it in Vercel Blob.
+    // Upload the ciphertext DIRECTLY to Vercel Blob (bypasses the 4.5 MB
+    // serverless body limit), then record the key -> url mapping on the server.
+    const { upload } = await import("@vercel/blob/client");
+    const result = await upload(key, data, {
+      access: "public",
+      contentType: "application/octet-stream",
+      handleUploadUrl: "/api/blob/upload",
+    });
     const res = await fetch(`/api/blob?key=${encodeURIComponent(key)}`, {
       method: "PUT",
-      body: data,
+      headers: { "content-type": "application/json" },
       credentials: "same-origin",
+      body: JSON.stringify({ url: result.url }),
     });
-    if (!res.ok) throw new Error(`Blob upload failed (${res.status})`);
+    if (!res.ok) throw new Error(`Blob mapping failed (${res.status})`);
   }
   async get(key: string): Promise<Blob | null> {
     // Time-limited signed URL; the browser fetches the ciphertext and decrypts locally.
