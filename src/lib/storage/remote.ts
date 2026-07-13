@@ -92,11 +92,11 @@ class RemoteMetadataStore implements MetadataStore {
 
 class RemoteBlobStore implements BlobStore {
   async put(key: string, data: Blob): Promise<void> {
-    // Upload the ciphertext DIRECTLY to Vercel Blob (bypasses the 4.5 MB
-    // serverless body limit), then record the key -> url mapping on the server.
+    // Upload the ciphertext DIRECTLY to Vercel Blob as a PRIVATE blob (bypasses
+    // the 4.5 MB serverless body limit), then record the key -> url mapping.
     const { upload } = await import("@vercel/blob/client");
     const result = await upload(key, data, {
-      access: "public",
+      access: "private",
       contentType: "application/octet-stream",
       handleUploadUrl: "/api/blob/upload",
     });
@@ -109,17 +109,14 @@ class RemoteBlobStore implements BlobStore {
     if (!res.ok) throw new Error(`Blob mapping failed (${res.status})`);
   }
   async get(key: string): Promise<Blob | null> {
-    // Time-limited signed URL; the browser fetches the ciphertext and decrypts locally.
-    const res = await fetch(`/api/blob/download-url?key=${encodeURIComponent(key)}`, {
+    // Private blobs are readable only with the server token, so stream them
+    // through our proxy; the browser decrypts the ciphertext locally.
+    const res = await fetch(`/api/blob/proxy?key=${encodeURIComponent(key)}`, {
       credentials: "same-origin",
     });
     if (res.status === 404) return null;
-    if (!res.ok) throw new Error(`Blob URL request failed (${res.status})`);
-    const { downloadUrl } = (await res.json()) as { downloadUrl: string };
-    const blobRes = await fetch(downloadUrl);
-    if (blobRes.status === 404) return null;
-    if (!blobRes.ok) throw new Error(`Blob download failed (${blobRes.status})`);
-    return blobRes.blob();
+    if (!res.ok) throw new Error(`Blob download failed (${res.status})`);
+    return res.blob();
   }
   async remove(key: string): Promise<void> {
     await api(`/api/blob?key=${encodeURIComponent(key)}`, { method: "DELETE" });
