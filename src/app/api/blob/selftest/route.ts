@@ -1,6 +1,6 @@
 /**
- * TEMPORARY diagnostic: verifies the (normalized) Blob RW token can perform a
- * real put. Remove after debugging. Session-gated.
+ * TEMPORARY diagnostic: uploads a PRIVATE blob and tests how to read it back.
+ * Remove after debugging. Session-gated.
  */
 import { NextResponse, type NextRequest } from "next/server";
 import { requireSession } from "@/lib/server/session";
@@ -8,28 +8,43 @@ import { resolveBlobToken } from "@/lib/server/blob-token";
 
 export const runtime = "nodejs";
 
+async function status(p: Promise<Response>): Promise<string> {
+  try {
+    const r = await p;
+    return `${r.status} (${(await r.arrayBuffer()).byteLength}b)`;
+  } catch (e) {
+    return `ERR ${(e as Error).message.slice(0, 60)}`;
+  }
+}
+
 export async function GET(req: NextRequest) {
   const unauth = await requireSession(req);
   if (unauth) return unauth;
-
   const tk = resolveBlobToken();
-  const info = {
-    tokenPresent: !!tk,
-    tokenStorePart: (tk ?? "").split("_").slice(0, 4).join("_"),
-  };
-
   try {
     const { put } = await import("@vercel/blob");
-    const data = new Uint8Array([1, 2, 3, 4, 5]);
+    const data = new Uint8Array([9, 8, 7, 6, 5, 4, 3, 2, 1, 0]);
     const r = await put(`selftest/${crypto.randomUUID()}`, data, {
-      access: "public",
+      access: "private",
       contentType: "application/octet-stream",
     });
-    return NextResponse.json({ ok: true, url: r.url, ...info });
-  } catch (e) {
-    return NextResponse.json(
-      { ok: false, error: (e as Error).message, ...info },
-      { status: 500 },
+    const anyR = r as unknown as { url: string; downloadUrl?: string };
+    const m1_authHeader = await status(
+      fetch(anyR.url, { headers: { authorization: `Bearer ${tk}` } }),
     );
+    const m2_downloadUrl = anyR.downloadUrl
+      ? await status(fetch(anyR.downloadUrl))
+      : "no downloadUrl field";
+    const m3_plain = await status(fetch(anyR.url));
+    return NextResponse.json({
+      ok: true,
+      url: anyR.url,
+      downloadUrl: anyR.downloadUrl ?? null,
+      m1_authHeader,
+      m2_downloadUrl,
+      m3_plain,
+    });
+  } catch (e) {
+    return NextResponse.json({ ok: false, error: (e as Error).message }, { status: 500 });
   }
 }
