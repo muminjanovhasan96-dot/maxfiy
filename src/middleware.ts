@@ -19,10 +19,10 @@ export function middleware(request: NextRequest) {
   const nonce = makeNonce();
   const isDev = process.env.NODE_ENV !== "production";
 
-  // Hosts the browser talks to for encrypted blobs (cloud mode): Vercel Blob
-  // upload + public read endpoints, and optionally Cloudflare R2. Ciphertext only.
+  // Hosts the browser talks to for encrypted blobs (cloud mode): the Vercel Blob
+  // client-upload API (vercel.com) and the storage hosts. Ciphertext only.
   const blobHosts =
-    "https://*.vercel-storage.com https://*.r2.cloudflarestorage.com";
+    "https://vercel.com https://*.vercel-storage.com https://*.blob.vercel-storage.com";
 
   const csp = [
     `default-src 'self'`,
