@@ -23,9 +23,11 @@ const useToastStore = create<ToastState>((set) => ({
   push: (message, variant = "default") => {
     const id = crypto.randomUUID();
     set((s) => ({ toasts: [...s.toasts, { id, message, variant }] }));
+    // Errors linger so they can be read; tap to dismiss sooner.
+    const ttl = variant === "error" ? 9000 : 3200;
     setTimeout(() => {
       set((s) => ({ toasts: s.toasts.filter((t) => t.id !== id) }));
-    }, 3200);
+    }, ttl);
   },
   dismiss: (id) => set((s) => ({ toasts: s.toasts.filter((t) => t.id !== id) })),
 }));

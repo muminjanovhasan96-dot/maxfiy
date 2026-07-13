@@ -22,6 +22,7 @@ import {
 import {
   generateImageThumbnail,
   generateVideoThumbnail,
+  placeholderThumbnail,
 } from "@/lib/crypto/thumbnails";
 import { getBackend, thumbCache } from "@/lib/storage";
 import type {
@@ -122,10 +123,18 @@ export class VaultRepository {
     const dek = generateDek();
     onProgress?.(0.05);
 
-    const thumb =
-      kind === "photo"
-        ? await generateImageThumbnail(file)
-        : await generateVideoThumbnail(file);
+    // Thumbnail generation must never block the upload — some formats (e.g. HEIC)
+    // can't be decoded by the browser, so fall back to a placeholder.
+    let thumb;
+    try {
+      thumb =
+        kind === "photo"
+          ? await generateImageThumbnail(file)
+          : await generateVideoThumbnail(file);
+    } catch (err) {
+      console.warn("Thumbnail generation failed; using placeholder:", err);
+      thumb = await placeholderThumbnail();
+    }
     onProgress?.(0.25);
 
     const { blob: encBlob, meta: streamMeta } = await encryptFileToBlob(dek, file);

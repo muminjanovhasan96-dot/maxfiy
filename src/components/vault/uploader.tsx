@@ -28,22 +28,43 @@ export function useUploads(kind: UploadKind) {
     if (!list.length) return;
     setBusy(true);
     setProgress({ done: 0, total: list.length });
+
     let done = 0;
-    for (const file of list) {
-      try {
-        if (kind === "document") await repo.addDocument(file);
-        else await repo.addMedia(file, kind);
-      } catch (err) {
-        console.error(err);
-        toast.error(t("upload.failed", { name: file.name }));
+    let ok = 0;
+    let failed = 0;
+    let firstError = "";
+    let cursor = 0;
+    const CONCURRENCY = 4;
+
+    async function worker() {
+      while (cursor < list.length) {
+        const file = list[cursor++];
+        try {
+          if (kind === "document") await repo!.addDocument(file);
+          else await repo!.addMedia(file, kind);
+          ok++;
+        } catch (err) {
+          failed++;
+          const msg = err instanceof Error ? err.message : String(err);
+          if (!firstError) firstError = `${file.name} — ${msg}`;
+          console.error("Upload failed:", file.name, err);
+        }
+        done++;
+        setProgress({ done, total: list.length });
       }
-      done++;
-      setProgress({ done, total: list.length });
     }
+
+    await Promise.all(
+      Array.from({ length: Math.min(CONCURRENCY, list.length) }, () => worker()),
+    );
+
     setBusy(false);
     setProgress(null);
     bump();
-    toast.success(t("upload.added", { n: done }));
+    if (ok > 0) toast.success(t("upload.added", { n: ok }));
+    if (failed > 0) {
+      toast.error(`${t("upload.someFailed", { n: failed })} · ${firstError.slice(0, 140)}`);
+    }
   }
 
   return { busy, progress, upload };

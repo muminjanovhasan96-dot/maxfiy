@@ -165,6 +165,7 @@ export const T: Record<string, Entry> = {
   "upload.drop": { uz: "Shifrlab qo‘shish uchun tashlang", ru: "Отпустите, чтобы зашифровать и добавить", en: "Drop to encrypt & add" },
   "upload.added": { uz: "{n} ta element qo‘shildi", ru: "Добавлено элементов: {n}", en: "Added {n} items" },
   "upload.failed": { uz: "Xato: {name}", ru: "Ошибка: {name}", en: "Failed: {name}" },
+  "upload.someFailed": { uz: "{n} ta yuklanmadi", ru: "Не загружено: {n}", en: "{n} failed" },
 
   // ---- empty states ----
   "empty.photos.t": { uz: "Hozircha rasm yo‘q", ru: "Пока нет фото", en: "No photos yet" },

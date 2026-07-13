@@ -73,6 +73,19 @@ function averageColor(
   }
 }
 
+/**
+ * A neutral solid-color thumbnail, used when a real thumbnail can't be generated
+ * (e.g. a HEIC/unsupported image the browser can't decode). Keeps the upload from
+ * failing — the item is still stored and encrypted.
+ */
+export async function placeholderThumbnail(color = "#2c2c2e"): Promise<ThumbnailResult> {
+  const { ctx, toBlob } = pickCanvas(64, 64);
+  ctx.fillStyle = color;
+  ctx.fillRect(0, 0, 64, 64);
+  const blob = await toBlob("image/webp", 0.8);
+  return { blob, width: 64, height: 64, avgColor: color };
+}
+
 export async function generateImageThumbnail(
   file: Blob,
   maxEdge = 512,
