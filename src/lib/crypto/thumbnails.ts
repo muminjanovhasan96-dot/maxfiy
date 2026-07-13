@@ -86,6 +86,31 @@ export async function placeholderThumbnail(color = "#2c2c2e"): Promise<Thumbnail
   return { blob, width: 64, height: 64, avgColor: color };
 }
 
+/**
+ * Downscale a large photo before upload so it transfers quickly over mobile
+ * networks. Keeps ~2560px on the longest edge at good JPEG quality (typically
+ * 1–2 MB vs 5–10 MB originals). Returns the original file if compression
+ * wouldn't help or isn't possible.
+ */
+export async function compressImage(
+  file: Blob,
+  maxEdge = 2560,
+  quality = 0.85,
+): Promise<Blob> {
+  const bitmap = await createImageBitmap(file);
+  const longest = Math.max(bitmap.width, bitmap.height);
+  if (longest <= maxEdge && file.size < 1_500_000) {
+    bitmap.close?.();
+    return file;
+  }
+  const { tw, th } = scaledSize(bitmap.width, bitmap.height, maxEdge);
+  const { ctx, toBlob } = pickCanvas(tw, th);
+  ctx.drawImage(bitmap, 0, 0, tw, th);
+  bitmap.close?.();
+  const out = await toBlob("image/jpeg", quality);
+  return out.size < file.size ? out : file;
+}
+
 export async function generateImageThumbnail(
   file: Blob,
   maxEdge = 512,

@@ -20,6 +20,7 @@ import {
   type StreamMeta,
 } from "@/lib/crypto";
 import {
+  compressImage,
   generateImageThumbnail,
   generateVideoThumbnail,
   placeholderThumbnail,
@@ -135,25 +136,42 @@ export class VaultRepository {
       console.warn("Thumbnail generation failed; using placeholder:", err);
       thumb = await placeholderThumbnail();
     }
-    onProgress?.(0.25);
+    onProgress?.(0.2);
 
-    const { blob: encBlob, meta: streamMeta } = await encryptFileToBlob(dek, file);
-    onProgress?.(0.7);
+    // Downscale big photos so they upload fast over mobile networks.
+    let content: Blob = file;
+    let mime = file.type || (kind === "photo" ? "image/jpeg" : "video/mp4");
+    if (kind === "photo") {
+      try {
+        const compressed = await compressImage(file);
+        if (compressed !== file) {
+          content = compressed;
+          mime = "image/jpeg";
+        }
+      } catch {
+        /* keep original */
+      }
+    }
 
+    const { blob: encBlob, meta: streamMeta } = await encryptFileToBlob(dek, content);
     const encThumb = await sealRawToBlob(dek, new Uint8Array(await thumb.blob.arrayBuffer()));
+    onProgress?.(0.35);
 
     const id = newId();
     const blobKey = `content/${id}`;
     const thumbKey = `thumb/${id}`;
-    await this.backend.blobs.put(blobKey, encBlob);
-    await this.backend.blobs.put(thumbKey, encThumb);
+    // Upload the full asset and its thumbnail concurrently.
+    await Promise.all([
+      this.backend.blobs.put(blobKey, encBlob),
+      this.backend.blobs.put(thumbKey, encThumb),
+    ]);
     onProgress?.(0.9);
 
     const capturedAt = file.lastModified || Date.now();
     const meta: ItemMeta = {
       name: file.name,
-      mime: file.type || (kind === "photo" ? "image/jpeg" : "video/mp4"),
-      size: file.size,
+      mime,
+      size: content.size,
       width: thumb.width,
       height: thumb.height,
       avgColor: thumb.avgColor,
